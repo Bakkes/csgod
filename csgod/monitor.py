@@ -6,7 +6,6 @@ import logging
 import importlib
 
 from csgod import info, handle
-from csgod.exceptions import InvalidHookFileError
 
 
 class Hook(list):
@@ -52,14 +51,14 @@ class Monitor:
         # logging.info(str(self.handlers))
         logging.info("Handler files:\n    " + str([handler.__name__ for handler in self.handlers]))
 
-
     def load_hooks(self):
         valid_ident_pattern = re.compile(r'[_A-Za-z][_a-zA-Z0-9]*$')
         env_vars = {
             'player': info.environment.player_name()
         }
 
-        files = (entry for entry in os.listdir("hooks")
+        files = (
+            entry for entry in os.listdir("hooks")
             if os.path.isfile(os.path.join("hooks", entry))
         )
         for file_name in files:
@@ -70,7 +69,8 @@ class Monitor:
                     # TODO: Validate
                     for local_name, pattern_set in content.items():
                         # Create python-style hook name.
-                        name_parts = [part.replace(" ", "_") for part in
+                        name_parts = [
+                            part.replace(" ", "_") for part in
                             ('on', file_name.split('.')[0], local_name)
                         ]
                         name = '_'.join(name_parts).lower()
@@ -88,10 +88,13 @@ class Monitor:
                     logging.error(str(error))
 
     def load_handlers(self):
-        modules = [entry.split('.')[0] for entry in os.listdir("handlers") if os.path.isfile(os.path.join("handlers", entry))]
+        modules = [
+            entry.split('.')[0]
+            for entry in os.listdir("handlers")
+            if os.path.isfile(os.path.join("handlers", entry))
+        ]
         loaders = {module: importlib.find_loader(module, ["handlers"]) for module in modules}
         self.handlers = [loader.load_module(name) for name, loader in loaders.items() if loader]
-        # logging.info("Loaded handler files:\n    " + str([handler.__name__ for handler in self.handlers if not handler.__name__ == '__pycache__']))
 
     def clear_log(self):
         with open(info.environment.game_log_path(), 'w'):
@@ -156,7 +159,6 @@ class Monitor:
                     logging.info("An event has been triggered.")
                     hook(*groups)
         self.log.seek(after)
-
 
     def __getattr__(self, attr):
         return self.hooks[attr]
