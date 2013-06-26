@@ -2,7 +2,7 @@ from cx_Freeze import setup, Executable
 
 build_exe_options = {
     'includes': ['win32api'],
-    'include_files': [("csgod/hooks", "hooks")]
+    'include_files': ["hooks", "handlers"]
 }
 
 setup(

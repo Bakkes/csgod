@@ -1,3 +1,6 @@
+from csgod.buffer import write, flush
+
+
 def init(monitor):
     globals().update(monitor.hooks)
 

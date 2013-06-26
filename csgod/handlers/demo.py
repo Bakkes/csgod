@@ -1,2 +1,0 @@
-from csgod.handle import *
-

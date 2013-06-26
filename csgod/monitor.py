@@ -3,8 +3,9 @@ import time
 import re
 import json
 import logging
+import importlib
 
-from csgod import info
+from csgod import info, handle
 from csgod.exceptions import InvalidHookFileError
 
 
@@ -24,7 +25,7 @@ class Hook(list):
             listener(*args, **kargs)
 
     def __repr__(self):
-        return "Hook(%s)" % super().__repr__(self)
+        return "Hook(handlers%s)" % super().__repr__()
 
 
 class Monitor:
@@ -36,29 +37,39 @@ class Monitor:
         self.logcheck_interval = logcheck_interval
         self.running = False
 
-        self.log = open(info.game_log_path(), 'r')
+        # self.log = open(info.game_log_path(), 'r')
 
         self.hooks = {}
         self.load_hooks()
+        self.sorted_hooks = sorted(self.hooks.values(), key=lambda hook: hook.lines())
+
+        handle.init(self)
+        self.handlers = []
+        self.load_handlers()
+
+        print(str(self.hooks))
+        print(str(self.handlers))
 
     def load_hooks(self):
-        from os.path import join, isfile
-
         valid_ident_pattern = re.compile(r'[_A-Za-z][_a-zA-Z0-9]*$')
         env_vars = {
             'player': info.player_name()
         }
 
-        files = (entry for entry in os.listdir("hooks") if isfile(join("hooks", entry)))
+        files = (entry for entry in os.listdir("hooks")
+            if os.path.isfile(os.path.join("hooks", entry))
+        )
         for file_name in files:
             # Try to read as json hook definition file.
             try:
-                with open(join("hooks", file_name), 'r') as hook_file:
+                with open(os.path.join("hooks", file_name), 'r') as hook_file:
                     content = json.load(hook_file)
                     # TODO: Validate
                     for local_name, pattern_set in content.items():
                         # Create python-style hook name.
-                        name_parts = [part.replace(" ", "_") for part in ('on', file_name, local_name)]
+                        name_parts = [part.replace(" ", "_") for part in
+                            ('on', file_name.split('.')[0], local_name)
+                        ]
                         name = '_'.join(name_parts).lower()
                         if not valid_ident_pattern.match(name):
                             raise ValueError("Invalid identifier: " + name)
@@ -74,31 +85,10 @@ class Monitor:
                     logging.error(str(error))
 
     def load_handlers(self):
-        from os.path import join, isfile
-
-        files = (entry for entry in os.listdir("handlers") if isfile(join("handlers", entry)) and entry.split('.')[-1] == '.py')
-        for file_name in files:
-            # Try to read as json hook definition file.
-            try:
-                with open(join("hooks", file_name), 'r') as hook_file:
-                    content = json.load(hook_file)
-                    # TODO: Validate
-                    for local_name, pattern_set in content.items():
-                        # Create python-style hook name.
-                        name_parts = [part.replace(" ", "_") for part in ('on', file_name, local_name)]
-                        name = '_'.join(name_parts).lower()
-                        if not valid_ident_pattern.match(name):
-                            raise ValueError("Invalid identifier: " + name)
-
-                        # Substitute variables into pattern and compile.
-                        pattern = [re.compile(line.format(**env_vars)) for line in pattern_set]
-
-                        # Register the hook.
-                        self.hooks[name] = Hook(pattern)
-            except (KeyError, ValueError) as error:
-                logging.error(file_name + " is not a valid hook file. It has been ignored.")
-                if str(error):
-                    logging.error(str(error))
+        modules = [entry.split('.')[0] for entry in os.listdir("handlers")]
+        loaders = {module: importlib.find_loader(module, ["handlers"]) for module in modules}
+        self.handlers = [loader.load_module(name) for name, loader in loaders.items() if loader]
+        # Now go and read http://en.wikipedia.org/wiki/Semantic_satiation
 
     def clear_log(self):
         with open(info.game_log_path(), 'w'):
@@ -117,7 +107,8 @@ class Monitor:
     def start(self):
         self.running = True
         self.clear_log()
-        self.log = open(self.log.name, self.log.mode)
+        # self.log = open(self.log.name, self.log.mode)
+        self.log = open(info.game_log_path(), 'r')
         self.run()
 
     def stop(self):
@@ -125,7 +116,9 @@ class Monitor:
         self.log.close()
 
     def run(self):
+        print("Looking for game process")
         while self.running:
+            print("...trying again in %s seconds" % str(self.runcheck_interval))
             while info.game_running():
                 self.process_line()
 
@@ -133,21 +126,22 @@ class Monitor:
             time.sleep(self.runcheck_interval)
 
     def process_line(self):
-        pos = self.log.tell()
+        before = self.log.tell()
         line = self.get_line()
+        after = self.log.tell()
+        # print("P" + str(before))
         # If the line is not empty or EOF.
         if line:
-            sorted_hooks = sorted(self.hooks.values, key=lambda hook: hook.lines())
             # Match the line against each pattern in the hook dictionary.
-            for hook in sorted_hooks:
-                self.log.seek(pos)
+            for hook in self.sorted_hooks:
+                self.log.seek(before)
+                line = self.get_line()
                 # Gather the information to pass to the hook handlers.
                 groups = []
                 for sub_pattern in hook.pattern:
                     match = sub_pattern.match(line)
-                    line = self.get_line()
                     if match:
-                        groups += match
+                        groups.extend(match.groups())
                         # Wait for a valid line of input
                         while not line:
                             line = self.get_line()
@@ -156,9 +150,14 @@ class Monitor:
                         break
                 else:
                     # Dispatch to the hook handlers.
+                    print("EVENT")
+                    logging.info("An event has been triggered.")
                     hook(*groups)
                     continue
+                # If one of the sub-patterns didn't match, break from this hook.
                 break
+        self.log.seek(after)
+
 
     def __getattr__(self, attr):
         return self.hooks[attr]

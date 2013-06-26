@@ -1,11 +1,13 @@
 import re
 import os.path
+import logging
 
 from csgod import info, buffer
 
 
 INIT_FILE_NAME = 'csgodinit.cfg'
-INIT_FILE_CONTENTS = '''
+INIT_FILE_CONTENTS = '''\
+con_logfile "console.log"
 bind {flush_k} "exec {buffer_f}"
 '''.format(
     flush_k=buffer.FLUSH_KEY,
@@ -17,7 +19,7 @@ def init():
     if not initialised():
         with open(info.game_autoexec_path(), 'a') as autoexec:
             autoexec.write('\nexec "%s"\n' % INIT_FILE_NAME)
-    with open(os.path.join(info.game_path(), r'\csgo\cfg', INIT_FILE_NAME), 'w') as init_file:
+    with open(os.path.join(info.game_path(), r'csgo\cfg', INIT_FILE_NAME), 'w') as init_file:
         init_file.write(INIT_FILE_CONTENTS)
 
 
