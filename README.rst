@@ -10,6 +10,8 @@ Features
 - Allows registration of handlers for these events.
 - ...more to come
 
+- **Currently completely broken and unfinished.**
+
 Notes
 -----
 
