@@ -6,6 +6,5 @@ import time
 def record_demo():
     print("lol")
     buffer.clear()
-    time.sleep(3)
-    buffer.write("say tits")
+    buffer.write("say lol")
     buffer.flush()
