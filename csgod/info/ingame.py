@@ -1,1 +1,1 @@
-map = None
+current_map = None
