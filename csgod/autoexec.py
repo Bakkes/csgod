@@ -17,15 +17,15 @@ bind {flush_k} "exec {buffer_f}"
 
 def init():
     if not initialised():
-        with open(info.game_autoexec_path(), 'a') as autoexec:
+        with open(info.environment.game_autoexec_path(), 'a') as autoexec:
             autoexec.write('\nexec "%s"\n' % INIT_FILE_NAME)
-    with open(os.path.join(info.game_path(), r'csgo\cfg', INIT_FILE_NAME), 'w') as init_file:
+    with open(os.path.join(info.environment.game_path(), r'csgo\cfg', INIT_FILE_NAME), 'w') as init_file:
         init_file.write(INIT_FILE_CONTENTS)
 
 
 def initialised():
     pattern = re.compile(r'(^|.*;)[ \t]*exec[ \t]+("?)%s\2[ \t]*(;|$)' % INIT_FILE_NAME)
-    with open(info.game_autoexec_path(), 'r') as autoexec:
+    with open(info.environment.game_autoexec_path(), 'r') as autoexec:
         for line in autoexec:
             if pattern.match(line):
                 return True

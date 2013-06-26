@@ -37,7 +37,7 @@ class Monitor:
         self.logcheck_interval = logcheck_interval
         self.running = False
 
-        # self.log = open(info.game_log_path(), 'r')
+        # self.log = open(info.environment.game_log_path(), 'r')
 
         self.hooks = {}
         self.load_hooks()
@@ -53,7 +53,7 @@ class Monitor:
     def load_hooks(self):
         valid_ident_pattern = re.compile(r'[_A-Za-z][_a-zA-Z0-9]*$')
         env_vars = {
-            'player': info.player_name()
+            'player': info.environment.player_name()
         }
 
         files = (entry for entry in os.listdir("hooks")
@@ -91,7 +91,7 @@ class Monitor:
         # Now go and read http://en.wikipedia.org/wiki/Semantic_satiation
 
     def clear_log(self):
-        with open(info.game_log_path(), 'w'):
+        with open(info.environment.game_log_path(), 'w'):
             pass
 
     def get_line(self):
@@ -108,7 +108,7 @@ class Monitor:
         self.running = True
         self.clear_log()
         # self.log = open(self.log.name, self.log.mode)
-        self.log = open(info.game_log_path(), 'r')
+        self.log = open(info.environment.game_log_path(), 'r')
         self.run()
 
     def stop(self):
@@ -119,7 +119,7 @@ class Monitor:
         print("Looking for game process")
         while self.running:
             print("...trying again in %s seconds" % str(self.runcheck_interval))
-            while info.game_running():
+            while info.environment.game_running():
                 self.process_line()
 
             # Wait before checking whether game is running again.

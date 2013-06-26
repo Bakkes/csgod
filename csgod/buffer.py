@@ -16,12 +16,12 @@ _SHELL = win32com.client.Dispatch('WScript.Shell')
 
 
 def write(string):
-    with open(os.path.join(info.game_path(), 'csgo', BUFFER_FILE_NAME), 'a') as buffer:
+    with open(os.path.join(info.environment.game_path(), 'csgo', BUFFER_FILE_NAME), 'a') as buffer:
         buffer.write(string)
 
 
 def clear():
-    with open(os.path.join(info.game_path(), 'csgo', BUFFER_FILE_NAME), 'w'):
+    with open(os.path.join(info.environment.game_path(), 'csgo', BUFFER_FILE_NAME), 'w'):
         pass
 
 
