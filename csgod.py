@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from csgod import autoexec
+from csgod import autoexec, handle
 from csgod.monitor import Monitor
 from csgod.exceptions import GameNotInstalledError
 
@@ -23,6 +23,7 @@ def main():
         autoexec.init()
 
         m = Monitor()
+        handle.init(m)
         m.start()
     except KeyboardInterrupt:
         logging.info("Program manually stopped.")

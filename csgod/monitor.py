@@ -4,15 +4,9 @@ import re
 import json
 import logging
 
-from yapsy.PluginManager import PluginManager
-
 from csgod import info
 from csgod.exceptions import InvalidHookFileError
 
-
-handler_manager = PluginManager()
-handler_manager.setPluginPlaces(["handlers"])
-handler_manager.collectPlugins()
 
 class Hook(list):
     """An event hook, containing a list of listeners to call when the hook is triggered.
@@ -79,6 +73,33 @@ class Monitor:
                 if str(error):
                     logging.error(str(error))
 
+    def load_handlers(self):
+        from os.path import join, isfile
+
+        files = (entry for entry in os.listdir("handlers") if isfile(join("handlers", entry)) and entry.split('.')[-1] == '.py')
+        for file_name in files:
+            # Try to read as json hook definition file.
+            try:
+                with open(join("hooks", file_name), 'r') as hook_file:
+                    content = json.load(hook_file)
+                    # TODO: Validate
+                    for local_name, pattern_set in content.items():
+                        # Create python-style hook name.
+                        name_parts = [part.replace(" ", "_") for part in ('on', file_name, local_name)]
+                        name = '_'.join(name_parts).lower()
+                        if not valid_ident_pattern.match(name):
+                            raise ValueError("Invalid identifier: " + name)
+
+                        # Substitute variables into pattern and compile.
+                        pattern = [re.compile(line.format(**env_vars)) for line in pattern_set]
+
+                        # Register the hook.
+                        self.hooks[name] = Hook(pattern)
+            except (KeyError, ValueError) as error:
+                logging.error(file_name + " is not a valid hook file. It has been ignored.")
+                if str(error):
+                    logging.error(str(error))
+
     def clear_log(self):
         with open(info.game_log_path(), 'w'):
             pass
@@ -116,26 +137,26 @@ class Monitor:
         line = self.get_line()
         # If the line is not empty or EOF.
         if line:
+            sorted_hooks = sorted(self.hooks.values, key=lambda hook: hook.lines())
             # Match the line against each pattern in the hook dictionary.
-            for hook in self.hooks.values():
+            for hook in sorted_hooks:
+                self.log.seek(pos)
                 # Gather the information to pass to the hook handlers.
                 groups = []
                 for sub_pattern in hook.pattern:
                     match = sub_pattern.match(line)
                     line = self.get_line()
-                    # Wait for a valid line of input
-                    while not line:
-                        line = self.get_line()
                     if match:
                         groups += match
+                        # Wait for a valid line of input
+                        while not line:
+                            line = self.get_line()
                     else:
                         # If one of the lines doesn't match the pattern, stop matching the hook.
                         break
                 else:
                     # Dispatch to the hook handlers.
                     hook(*groups)
-                    # Prepare the environment for the next hook.
-                    self.log.seek(pos)
                     continue
                 break
 
