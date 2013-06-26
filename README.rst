@@ -1,27 +1,34 @@
 csgod
 =====
 
-
-csgod is a daemon for monitoring an instance of Counter-Strike: Global Offensive and hooking onto in-game events. At the moment, hooks are by pairing a regex with a function. When the regex matches a line of console output, the function is called.
-
-Additional hooks can be easily written.
-
+csgod monitors an instance of Counter-Strike: Global Offensive and hooks onto in-game events. Handlers can be easily written and hooked onto the provided events.
 
 Features
 --------
 
-- stuff
+- Monitors a CS:GO process for events e.g. match start, player connect, map change.
+- Allows registration of handlers for these events.
+- ...more to come
 
+Notes
+-----
+
+Requires some modification of the autoexec.cfg file. One line is inserted but it can be later moved to any place in the file.
 
 Installation
 ------------
 
-A binary distribution is available `here <http://magp.io/projects/csgod/home.html>`_.
+A `binary distribution`_ is available.
 
-Execution from source requires Python 3 and `Python for Windows Extensions <http://sourceforge.net/projects/pywin32/>`_.
+Execution from source requires Python 3 and `Python for Windows Extensions`_.
+
+.. _binary distribution: http://magp.io/projects/csgod/home.html
+.. _Python for Windows Extensions: http://sourceforge.net/projects/pywin32/
 
 
 Documentation
 -------------
 
-Documentation is available `here <http://magp.io/projects/csgod/documentation/home.html>`_.
+View the `documentation on my site`_.
+
+.. _documentation on my site: http://magp.io/projects/csgod/documentation/home.html

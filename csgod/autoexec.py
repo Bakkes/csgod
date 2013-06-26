@@ -1,4 +1,5 @@
 import re
+import os.path
 
 from csgod import info, buffer
 
@@ -16,7 +17,7 @@ def init():
     if not initialised():
         with open(info.game_autoexec_path(), 'a') as autoexec:
             autoexec.write('\nexec "%s"\n' % INIT_FILE_NAME)
-    with open(info.game_path() + '/csgo/' + INIT_FILE_NAME, 'w') as init_file:
+    with open(os.path.join(info.game_path(), '/csgo/cfg', INIT_FILE_NAME), 'w') as init_file:
         init_file.write(INIT_FILE_CONTENTS)
 
 

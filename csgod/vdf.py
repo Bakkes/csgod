@@ -1,8 +1,8 @@
 import re
 
 
-def loads(s):
-    colons_added = re.sub(r'"(?=\s*\{|[ \t]*")', r'":', s, flags=re.MULTILINE)
+def loads(string):
+    colons_added = re.sub(r'"(?=\s*\{|[ \t]*")', r'":', string, flags=re.MULTILINE)
     commas_added = re.sub(r'(["\}])(?=$)(?!\s*(\}|\Z))', r'\1,', colons_added, flags=re.MULTILINE)
     final = "{%s}" % commas_added
 

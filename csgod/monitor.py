@@ -1,28 +1,102 @@
+import os
 import time
 import re
+import json
+import logging
+
+from yapsy.PluginManager import PluginManager
 
 from csgod import info
+from csgod.exceptions import InvalidHookFileError
+
+
+handler_manager = PluginManager()
+handler_manager.setPluginPlaces(["handlers"])
+handler_manager.collectPlugins()
+
+class Hook(list):
+    """An event hook, containing a list of listeners to call when the hook is triggered.
+    """
+
+    def __init__(self, pattern):
+        super().__init__()
+        self.pattern = pattern
+
+    def lines(self):
+        return len(self.pattern)
+
+    def __call__(self, *args, **kargs):
+        for listener in self:
+            listener(*args, **kargs)
+
+    def __repr__(self):
+        return "Hook(%s)" % super().__repr__(self)
 
 
 class Monitor:
-    """Monitors a CS:GO process and notifies listeners when events occur."""
+    """Monitors a CS:GO process and notifies listeners when events occur.
+    """
 
-    def __init__(self, runcheck_interval=5):
+    def __init__(self, runcheck_interval=5, logcheck_interval=1):
         self.runcheck_interval = runcheck_interval
+        self.logcheck_interval = logcheck_interval
         self.running = False
 
         self.log = open(info.game_log_path(), 'r')
-        self.hooks = {}
-        # pattern_hooks = {re.compile(pattern): func for (pattern, func) in {
-        #     r'pattern': func
-        # }.items()}
 
-    def clear_log():
+        self.hooks = {}
+        self.load_hooks()
+
+    def load_hooks(self):
+        from os.path import join, isfile
+
+        valid_ident_pattern = re.compile(r'[_A-Za-z][_a-zA-Z0-9]*$')
+        env_vars = {
+            'player': info.player_name()
+        }
+
+        files = (entry for entry in os.listdir("hooks") if isfile(join("hooks", entry)))
+        for file_name in files:
+            # Try to read as json hook definition file.
+            try:
+                with open(join("hooks", file_name), 'r') as hook_file:
+                    content = json.load(hook_file)
+                    # TODO: Validate
+                    for local_name, pattern_set in content.items():
+                        # Create python-style hook name.
+                        name_parts = [part.replace(" ", "_") for part in ('on', file_name, local_name)]
+                        name = '_'.join(name_parts).lower()
+                        if not valid_ident_pattern.match(name):
+                            raise ValueError("Invalid identifier: " + name)
+
+                        # Substitute variables into pattern and compile.
+                        pattern = [re.compile(line.format(**env_vars)) for line in pattern_set]
+
+                        # Register the hook.
+                        self.hooks[name] = Hook(pattern)
+            except (KeyError, ValueError) as error:
+                logging.error(file_name + " is not a valid hook file. It has been ignored.")
+                if str(error):
+                    logging.error(str(error))
+
+    def clear_log(self):
         with open(info.game_log_path(), 'w'):
             pass
 
+    def get_line(self):
+        pos = self.log.tell()
+        line = self.log.readline()
+        if line:
+            return(line.rstrip())
+        else:
+            self.log.seek(pos)
+            time.sleep(self.logcheck_interval)
+            return None
+
     def start(self):
         self.running = True
+        self.clear_log()
+        self.log = open(self.log.name, self.log.mode)
         self.run()
 
     def stop(self):
@@ -31,45 +105,51 @@ class Monitor:
 
     def run(self):
         while self.running:
-            clear_log()
-            self.log.seek(0)
-
             while info.game_running():
-                pos = self.log.tell()
-                line = self.log.readline()
-                if line:
-                    self.process_line(line.rstrip())
-                elif line is '\n':
-                    continue
-                else:
-                    # print(".", end='')
-                    # sys.stdout.flush()
-                    self.log.seek(pos)
-                    time.sleep(1)
+                self.process_line()
 
             # Wait before checking whether game is running again.
             time.sleep(self.runcheck_interval)
 
-    def process_line(self, line):
-        # Match each regex on the string
-        matches = (
-            (pattern.match(line), f) for pattern, f in self.hooks
-        )
+    def process_line(self):
+        pos = self.log.tell()
+        line = self.get_line()
+        # If the line is not empty or EOF.
+        if line:
+            # Match the line against each pattern in the hook dictionary.
+            for hook in self.hooks.values():
+                # Gather the information to pass to the hook handlers.
+                groups = []
+                for sub_pattern in hook.pattern:
+                    match = sub_pattern.match(line)
+                    line = self.get_line()
+                    # Wait for a valid line of input
+                    while not line:
+                        line = self.get_line()
+                    if match:
+                        groups += match
+                    else:
+                        # If one of the lines doesn't match the pattern, stop matching the hook.
+                        break
+                else:
+                    # Dispatch to the hook handlers.
+                    hook(*groups)
+                    # Prepare the environment for the next hook.
+                    self.log.seek(pos)
+                    continue
+                break
 
-        # Filter out empty matches, and extract groups
-        matches = (
-            (match.groups(), f) for match, f in matches if match and f
-        )
+    def __getattr__(self, attr):
+        return self.hooks[attr]
 
-        # Delegate to the functions
-        for args, f in matches:
-            f(*args)
+    # def __setattr__(self, attr, val):
+    #     self.hooks[attr] = val
 
-    def __getitem__(self, key):
-        return self.hooks[re.compile(key)]
+    # def __getitem__(self, key):
+    #     return self.hooks[re.compile(key)]
 
-    def __setitem__(self, key, value):
-        self.hooks[re.compile(key)] = value
+    # def __setitem__(self, key, value):
+    #     self.hooks[re.compile(key)] = value
 
-    def __delitem__(self, key):
-        del self.hooks[re.compile(key)]
+    # def __delitem__(self, key):
+    #     del self.hooks[re.compile(key)]

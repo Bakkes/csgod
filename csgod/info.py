@@ -1,5 +1,5 @@
 import winreg
-from os.path import normpath as norm
+import os.path
 
 import win32ui
 # import win32con
@@ -11,14 +11,14 @@ from csgod.exceptions import GameNotInstalledError
 
 def game_installed():
     try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, norm("Software/Valve/Steam/Apps/730")) as key:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam\Apps\730") as key:
             return bool(winreg.QueryValueEx(key, 'Installed')[0])
     except OSError:
         return False
 
 
 def steam_path():
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, norm("Software/Valve/Steam")) as key:
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as key:
         return winreg.QueryValueEx(key, 'SteamPath')[0]
 
 
@@ -26,30 +26,23 @@ def game_path():
     if not game_installed():
         raise GameNotInstalledError
 
-    steam_config = vdf.load(steam_path() + "/config/config.vdf")
-    return steam_config[
-        'InstallConfigStore'][
-        'Software'][
-        'Valve'][
-        'Steam'][
-        'apps'][
-        '730'][
-        'installdir'
-    ].replace('\\', '/')
+    steam_config = vdf.load(os.path.join(steam_path(), r"config\config.vdf"))
+    return steam_config['InstallConfigStore']['Software'][
+            'Valve']['Steam']['apps']['730']['installdir']
 
 
 def game_log_path():
     if not game_installed():
         raise GameNotInstalledError
 
-    return game_path() + "/csgo/console.log"
+    return os.path.join(game_path(), r"csgo\console.log")
 
 
 def game_autoexec_path():
     if not game_installed():
         raise GameNotInstalledError
 
-    return game_path() + "/csgo/cfg/autoexec.cfg"
+    return os.path.join(game_path(), r"csgo\cfg\autoexec.cfg")
 
 
 def game_running():
@@ -62,3 +55,13 @@ def game_running():
         return False
     else:
         return True
+
+
+def player_name():
+    if not game_installed():
+        raise GameNotInstalledError
+
+    with open(os.path.join(game_path(), r"csgo\cfg\config.cfg"), 'r') as config:
+        for line in config:
+            if line.startswith('name '):
+                return line.split('"')[1]

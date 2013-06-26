@@ -1,11 +1,9 @@
 from csgod import buffer
 
 
-
-
-# def hook(f):
-#     def wrapped_hook(*args, **kargs):
-#         result = (f(*args, **kargs))
+def hook(f, pattern):
+    def wrapped_hook(*args, **kargs):
+        result = (f(*args, **kargs))
 
 
 # class Hook:
