@@ -22,6 +22,7 @@ class Hook(list):
 
     def __call__(self, *args, **kargs):
         for listener in self:
+            logging.info("Calling " + listener.__name__)
             listener(*args, **kargs)
 
     def __repr__(self):
@@ -47,8 +48,10 @@ class Monitor:
         self.handlers = []
         self.load_handlers()
 
-        logging.info(str(self.hooks))
-        logging.info(str(self.handlers))
+        logging.info("Hooks:\n    " + str(self.hooks))
+        # logging.info(str(self.handlers))
+        logging.info("Handler files:\n    " + str([handler.__name__ for handler in self.handlers]))
+
 
     def load_hooks(self):
         valid_ident_pattern = re.compile(r'[_A-Za-z][_a-zA-Z0-9]*$')
@@ -85,10 +88,10 @@ class Monitor:
                     logging.error(str(error))
 
     def load_handlers(self):
-        modules = [entry.split('.')[0] for entry in os.listdir("handlers")]
+        modules = [entry.split('.')[0] for entry in os.listdir("handlers") if os.path.isfile(os.path.join("handlers", entry))]
         loaders = {module: importlib.find_loader(module, ["handlers"]) for module in modules}
         self.handlers = [loader.load_module(name) for name, loader in loaders.items() if loader]
-        # print("Loaded handler files:\n    " + str([handler.__name__ for handler in self.handlers if not handler.__name__ == '__pycache__']))
+        # logging.info("Loaded handler files:\n    " + str([handler.__name__ for handler in self.handlers if not handler.__name__ == '__pycache__']))
 
     def clear_log(self):
         with open(info.environment.game_log_path(), 'w'):
@@ -117,7 +120,7 @@ class Monitor:
 
     def run(self):
         while self.running:
-            while info.environment.game_running():
+            while info.environment.game_running() and self.running:
                 self.process_line()
 
             # Wait before checking whether game is running again.
@@ -130,18 +133,22 @@ class Monitor:
         # If the line is not empty or EOF.
         if line:
             # Match the line against each pattern in the hook dictionary.
-            for hook in self.sorted_hooks:
+            for h_index, hook in enumerate(self.sorted_hooks):
+                print("Testing hook no." + str(h_index))
                 self.log.seek(before)
                 line = self.get_line()
                 # Gather the information to pass to the hook handlers.
                 groups = []
-                for sub_pattern in hook.pattern:
+                for s_index, sub_pattern in enumerate(hook.pattern):
+                    print('Testing sub-pattern no.' + str(s_index))
                     match = sub_pattern.match(line)
                     if match:
                         groups.extend(match.groups())
-                        # Wait for a valid line of input
-                        while not line:
-                            line = self.get_line()
+                        if index < hook.lines() - 1:
+                            # Wait for a valid line of input
+                            while not line:
+                                print("Waiting for next line.")
+                                line = self.get_line()
                     else:
                         # If one of the lines doesn't match the pattern, stop matching the hook.
                         break
@@ -150,9 +157,6 @@ class Monitor:
                     print("EVENT")
                     logging.info("An event has been triggered.")
                     hook(*groups)
-                    continue
-                # If one of the sub-patterns didn't match, break from this hook.
-                break
         self.log.seek(after)
 
 
