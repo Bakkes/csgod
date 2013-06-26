@@ -49,6 +49,11 @@ def game_autoexec_path():
 
 
 @requires_game
+def game_valverc_path():
+    return os.path.join(game_path(), r"csgo\cfg\valve.rc")
+
+
+@requires_game
 def game_running():
     try:
         win32ui.FindWindow('Valve001', 'Counter-Strike: Global Offensive')

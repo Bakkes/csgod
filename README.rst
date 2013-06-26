@@ -15,7 +15,7 @@ Features
 Notes
 -----
 
-Requires some modification of the autoexec.cfg file. One line is inserted but it can be later moved to any place in the file.
+Modifies the valve.rc file. One command is appended (along with a safely removable comment) but can be moved to any valid place within the file.
 
 Installation
 ------------

@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from csgod import autoexec, handle
+from csgod import valverc, handle
 from csgod.monitor import Monitor
 from csgod.exceptions import GameNotInstalledError
 
@@ -13,7 +13,7 @@ def main():
         log.write('\n')
 
     try:
-        autoexec.init()
+        valverc.init()
 
         m = Monitor()
         m.start()

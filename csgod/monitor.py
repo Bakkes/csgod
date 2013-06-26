@@ -133,18 +133,16 @@ class Monitor:
         # If the line is not empty or EOF.
         if line:
             # Match the line against each pattern in the hook dictionary.
-            for h_index, hook in enumerate(self.sorted_hooks):
-                print("Testing hook no." + str(h_index))
+            for hook in self.sorted_hooks:
                 self.log.seek(before)
                 line = self.get_line()
                 # Gather the information to pass to the hook handlers.
                 groups = []
-                for s_index, sub_pattern in enumerate(hook.pattern):
-                    print('Testing sub-pattern no.' + str(s_index))
+                for sub_index, sub_pattern in enumerate(hook.pattern):
                     match = sub_pattern.match(line)
                     if match:
                         groups.extend(match.groups())
-                        if index < hook.lines() - 1:
+                        if sub_index < hook.lines() - 1:
                             # Wait for a valid line of input
                             while not line:
                                 print("Waiting for next line.")
