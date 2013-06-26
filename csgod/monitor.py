@@ -47,8 +47,8 @@ class Monitor:
         self.handlers = []
         self.load_handlers()
 
-        print(str(self.hooks))
-        print(str(self.handlers))
+        logging.info(str(self.hooks))
+        logging.info(str(self.handlers))
 
     def load_hooks(self):
         valid_ident_pattern = re.compile(r'[_A-Za-z][_a-zA-Z0-9]*$')
@@ -88,7 +88,7 @@ class Monitor:
         modules = [entry.split('.')[0] for entry in os.listdir("handlers")]
         loaders = {module: importlib.find_loader(module, ["handlers"]) for module in modules}
         self.handlers = [loader.load_module(name) for name, loader in loaders.items() if loader]
-        # Now go and read http://en.wikipedia.org/wiki/Semantic_satiation
+        # print("Loaded handler files:\n    " + str([handler.__name__ for handler in self.handlers if not handler.__name__ == '__pycache__']))
 
     def clear_log(self):
         with open(info.environment.game_log_path(), 'w'):
@@ -116,9 +116,7 @@ class Monitor:
         self.log.close()
 
     def run(self):
-        print("Looking for game process")
         while self.running:
-            print("...trying again in %s seconds" % str(self.runcheck_interval))
             while info.environment.game_running():
                 self.process_line()
 
@@ -129,7 +127,6 @@ class Monitor:
         before = self.log.tell()
         line = self.get_line()
         after = self.log.tell()
-        # print("P" + str(before))
         # If the line is not empty or EOF.
         if line:
             # Match the line against each pattern in the hook dictionary.

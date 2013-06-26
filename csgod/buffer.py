@@ -27,6 +27,6 @@ def clear():
 
 def flush():
     # Send the flush key.
-    _SHELL.SendKeys('{%w}' % FLUSH_KEY, 0)
+    _SHELL.SendKeys('{%s}' % FLUSH_KEY, 0)
     time.sleep(FLUSH_SLEEP_TIME)
     clear()
