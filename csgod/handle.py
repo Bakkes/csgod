@@ -8,14 +8,13 @@ def init(monitor):
 
 
 # Decorator
-def handles(hook, before_padding=0, after_padding=0.25):
+def handles(hook, before_padding=0):
     def register(handler):
         nonlocal hook
-        hook.append(handler)
         def padded(*args, **kargs):
             time.sleep(before_padding)
             results = handler(*args, **kargs)
-            time.sleep(after_padding)
             return results
+        hook.append(padded)
         return padded
     return register

@@ -23,7 +23,8 @@ def clear():
         pass
 
 
-def flush():
+def flush(padding=0.25):
     # Send the flush key.
     _SHELL.SendKeys('{%s}' % FLUSH_KEY, 0)
+    time.sleep(padding)
     clear()

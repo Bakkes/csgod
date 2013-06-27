@@ -2,8 +2,9 @@ from csgod.handle import *
 from csgod import buffer
 
 
-@handles(on_server_connect, 2)
+@handles(on_server_connect)
 def record_demo():
     buffer.clear()
-    buffer.write()
+    print("Recording")
+    buffer.write("record test")
     buffer.flush()
