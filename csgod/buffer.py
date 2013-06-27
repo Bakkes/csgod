@@ -10,8 +10,6 @@ from csgod import info
 FLUSH_KEY = 'F8'
 BUFFER_FILE_NAME = 'csgodbuffer.cfg'
 
-FLUSH_PADDING_TIME = 2
-
 _SHELL = win32com.client.Dispatch('WScript.Shell')
 
 
@@ -26,8 +24,6 @@ def clear():
 
 
 def flush():
-    time.sleep(FLUSH_PADDING_TIME)
     # Send the flush key.
     _SHELL.SendKeys('{%s}' % FLUSH_KEY, 0)
-    time.sleep(FLUSH_PADDING_TIME)
     clear()
